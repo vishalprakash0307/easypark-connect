@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/components/ui/use-toast';
 import { Car, MapPin, History, CreditCard, Settings, User, Clock } from 'lucide-react';
 import { useParkingContext } from '@/context/ParkingContext';
@@ -18,10 +19,19 @@ import StatCard from '@/components/StatCard';
 import { ParkingSpot as ParkingSpotType } from '@/types';
 
 const Dashboard = () => {
-  const { currentUser, login, parkingLots, selectedLot, selectLot, statistics } = useParkingContext();
+  const { 
+    currentUser, 
+    login, 
+    parkingLots, 
+    selectedLot, 
+    selectLot, 
+    statistics,
+    createBooking 
+  } = useParkingContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotType | null>(null);
+  const [duration, setDuration] = useState(2); // Default 2 hours
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,6 +51,7 @@ const Dashboard = () => {
     setIsLoggingIn(true);
     
     try {
+      // Add check for admin login
       const success = await login(email, password);
       
       if (success) {
@@ -48,10 +59,15 @@ const Dashboard = () => {
           title: "Success",
           description: "You have successfully logged in",
         });
+        
+        // Redirect admin users to admin page
+        if (email === "admin@gmail.com" && password === "1234") {
+          navigate('/admin');
+        }
       } else {
         toast({
           title: "Error",
-          description: "Invalid email or password. Hint: try 'john@example.com' or 'admin@example.com'",
+          description: "Invalid email or password. Hint: try 'john@example.com' or 'admin@gmail.com'",
           variant: "destructive",
         });
       }
@@ -67,7 +83,15 @@ const Dashboard = () => {
   };
 
   const handleSpotSelect = (spot: ParkingSpotType) => {
-    setSelectedSpot(spot);
+    if (spot.status === 'available') {
+      setSelectedSpot(spot);
+    } else {
+      toast({
+        title: "Spot Unavailable",
+        description: "This parking spot is not available",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReservation = () => {
@@ -80,13 +104,8 @@ const Dashboard = () => {
       return;
     }
     
-    toast({
-      title: "Success",
-      description: `Spot ${selectedSpot.spotNumber} has been reserved`,
-    });
-    
-    // In a real app, this would update the database
-    setSelectedSpot(null);
+    createBooking(selectedSpot, duration);
+    navigate('/payment');
   };
 
   if (!currentUser) {
@@ -140,10 +159,159 @@ const Dashboard = () => {
                   <div className="text-center text-sm text-muted-foreground mt-2">
                     <p>Demo accounts:</p>
                     <p>User: john@example.com</p>
-                    <p>Admin: admin@example.com</p>
-                    <p>(Use any password)</p>
+                    <p>Admin: admin@gmail.com (password: 1234)</p>
+                    <p>(Use any password for non-admin accounts)</p>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (selectedLot) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <div className="text-sm font-medium text-muted-foreground">
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                title="Available Parking Lots"
+                value={statistics.totalParkingLots}
+                icon={MapPin}
+                trend="neutral"
+                trendValue="All connected"
+                useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
+              />
+              <StatCard
+                title="Total Parking Spots"
+                value={statistics.totalSpots}
+                icon={Car}
+                trend="up"
+                trendValue="+5% from last week"
+                useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
+              />
+              <StatCard
+                title="Available Spots"
+                value={statistics.availableSpots}
+                icon={MapPin}
+                trend="down"
+                trendValue="-12% from yesterday"
+                useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
+              />
+              <StatCard
+                title="Occupancy Rate"
+                value={`${statistics.occupancyRate}%`}
+                icon={Settings}
+                trend="up"
+                trendValue="+8% from average"
+                useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
+              />
+            </div>
+            
+            <Card className="mb-6">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{selectedLot.name}</CardTitle>
+                  <CardDescription>{selectedLot.address}</CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => selectLot(null)}>
+                  Back to Map
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 mb-6">
+                  {selectedLot.spots.slice(0, 48).map((spot) => (
+                    <ParkingSpot
+                      key={spot.id}
+                      spot={spot}
+                      onClick={handleSpotSelect}
+                      selected={selectedSpot?.id === spot.id}
+                    />
+                  ))}
+                </div>
+                
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 bg-green-500 rounded-full mr-2"></div>
+                    <span className="text-sm">Available</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 bg-red-500 rounded-full mr-2"></div>
+                    <span className="text-sm">Occupied</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 bg-yellow-500 rounded-full mr-2"></div>
+                    <span className="text-sm">Reserved</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 bg-gray-400 rounded-full mr-2"></div>
+                    <span className="text-sm">Disabled</span>
+                  </div>
+                </div>
+                
+                {selectedSpot && (
+                  <Card className="mt-6 border-2 border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Book Spot {selectedSpot.spotNumber}</CardTitle>
+                      <CardDescription>
+                        Select duration and confirm your booking
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label htmlFor="duration">Duration (hours)</Label>
+                          <span className="font-medium">{duration} {duration === 1 ? 'hour' : 'hours'}</span>
+                        </div>
+                        <Slider
+                          id="duration"
+                          min={1}
+                          max={12}
+                          step={1}
+                          defaultValue={[duration]}
+                          onValueChange={(value) => setDuration(value[0])}
+                        />
+                      </div>
+                      
+                      <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm">Hourly Rate</span>
+                          <span>₹{selectedLot.hourlyRate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Duration</span>
+                          <span>{duration} {duration === 1 ? 'hour' : 'hours'}</span>
+                        </div>
+                        <div className="flex justify-between font-medium">
+                          <span>Estimated Total</span>
+                          <span>₹{(selectedLot.hourlyRate * duration).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-end">
+                      <Button onClick={handleReservation}>
+                        Proceed to Payment
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -177,6 +345,7 @@ const Dashboard = () => {
               icon={MapPin}
               trend="neutral"
               trendValue="All connected"
+              useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
             />
             <StatCard
               title="Total Parking Spots"
@@ -184,6 +353,7 @@ const Dashboard = () => {
               icon={Car}
               trend="up"
               trendValue="+5% from last week"
+              useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
             />
             <StatCard
               title="Available Spots"
@@ -191,6 +361,7 @@ const Dashboard = () => {
               icon={MapPin}
               trend="down"
               trendValue="-12% from yesterday"
+              useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
             />
             <StatCard
               title="Occupancy Rate"
@@ -198,6 +369,7 @@ const Dashboard = () => {
               icon={Settings}
               trend="up"
               trendValue="+8% from average"
+              useIndianFormat={currentUser.preferences?.useIndianNumberFormat}
             />
           </div>
           
@@ -220,65 +392,14 @@ const Dashboard = () => {
                 <CardContent>
                   <Map />
                 </CardContent>
+                <CardFooter className="justify-end">
+                  <Button asChild variant="outline">
+                    <Link to="/nearby">
+                      View Nearby Parking
+                    </Link>
+                  </Button>
+                </CardFooter>
               </Card>
-              
-              {selectedLot && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{selectedLot.name} - Available Spots</CardTitle>
-                    <CardDescription>
-                      Select an available spot to reserve
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 mb-6">
-                      {selectedLot.spots.slice(0, 48).map((spot) => (
-                        <ParkingSpot
-                          key={spot.id}
-                          spot={spot}
-                          onClick={handleSpotSelect}
-                          selected={selectedSpot?.id === spot.id}
-                        />
-                      ))}
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-4 mb-4">
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-green-500 rounded-full mr-2"></div>
-                        <span className="text-sm">Available</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-red-500 rounded-full mr-2"></div>
-                        <span className="text-sm">Occupied</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-yellow-500 rounded-full mr-2"></div>
-                        <span className="text-sm">Reserved</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-gray-400 rounded-full mr-2"></div>
-                        <span className="text-sm">Disabled</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center pt-4 border-t">
-                      <div>
-                        {selectedSpot && (
-                          <div className="text-sm">
-                            Selected Spot: <span className="font-medium">{selectedSpot.spotNumber}</span>
-                          </div>
-                        )}
-                      </div>
-                      <Button 
-                        onClick={handleReservation}
-                        disabled={!selectedSpot}
-                      >
-                        Reserve Spot
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
             
             <TabsContent value="lots" className="space-y-6">
@@ -316,7 +437,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center">
                           <CreditCard className="h-4 w-4 mr-1" />
-                          <span>$7.50</span>
+                          <span>₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(7.50) : '7.50'}</span>
                         </div>
                       </div>
                       <div className="mt-3 flex justify-end space-x-2">
@@ -342,7 +463,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center">
                           <CreditCard className="h-4 w-4 mr-1" />
-                          <span>$9.00</span>
+                          <span>₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(9.00) : '9.00'}</span>
                         </div>
                       </div>
                       <div className="mt-3 flex justify-end space-x-2">
@@ -368,7 +489,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center">
                           <CreditCard className="h-4 w-4 mr-1" />
-                          <span>$10.12</span>
+                          <span>₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(10.12) : '10.12'}</span>
                         </div>
                       </div>
                       <div className="mt-3 flex justify-end space-x-2">
@@ -437,7 +558,7 @@ const Dashboard = () => {
                               <p className="text-sm text-gray-500">August 15, 2023</p>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium">$10.75</span>
+                              <span className="font-medium">₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(10.75) : '10.75'}</span>
                               <p className="text-sm text-gray-500">4.25 hours</p>
                             </div>
                           </div>
@@ -457,7 +578,7 @@ const Dashboard = () => {
                               <p className="text-sm text-gray-500">August 10, 2023</p>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium">$4.38</span>
+                              <span className="font-medium">₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(4.38) : '4.38'}</span>
                               <p className="text-sm text-gray-500">2.5 hours</p>
                             </div>
                           </div>
@@ -477,7 +598,7 @@ const Dashboard = () => {
                               <p className="text-sm text-gray-500">August 5, 2023</p>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium">$6.00</span>
+                              <span className="font-medium">₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(6.00) : '6.00'}</span>
                               <p className="text-sm text-gray-500">2 hours</p>
                             </div>
                           </div>
@@ -497,7 +618,7 @@ const Dashboard = () => {
                               <p className="text-sm text-gray-500">July 28, 2023</p>
                             </div>
                             <div className="text-right">
-                              <span className="font-medium">$8.44</span>
+                              <span className="font-medium">₹{currentUser.preferences?.useIndianNumberFormat ? formatIndianNumber(8.44) : '8.44'}</span>
                               <p className="text-sm text-gray-500">3.75 hours</p>
                             </div>
                           </div>

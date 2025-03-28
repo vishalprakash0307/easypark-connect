@@ -8,6 +8,9 @@ import { ParkingProvider } from "./context/ParkingContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import NearbyParking from "./pages/NearbyParking";
+import Payment from "./pages/Payment";
+import PaymentConfirmation from "./pages/PaymentConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +26,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/nearby" element={<NearbyParking />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/confirmation/:receiptId" element={<PaymentConfirmation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

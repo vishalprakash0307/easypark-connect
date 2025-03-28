@@ -18,6 +18,7 @@ export interface ParkingLot {
   closeTime: string;
   image?: string;
   spots: ParkingSpot[];
+  estimatedTime?: string; // estimated walking/driving time
 }
 
 export interface User {
@@ -28,6 +29,7 @@ export interface User {
   preferences?: {
     useIndianNumberFormat?: boolean;
   };
+  vehicleNumber?: string; // User's vehicle number
 }
 
 export interface Statistics {
@@ -46,6 +48,11 @@ export interface Transaction {
   endTime: Date | null;
   amount: number;
   status: 'pending' | 'completed' | 'canceled';
+  receiptId?: string;
+  paymentMethod?: string;
+  baseFare?: number;
+  taxes?: number;
+  duration?: number; // in hours
 }
 
 export interface ParkingFilter {
@@ -53,4 +60,15 @@ export interface ParkingFilter {
   maxPrice?: number;
   maxDistance?: number;
   openNow?: boolean;
+}
+
+export interface BookingDetails {
+  user: User;
+  parkingLot: ParkingLot;
+  spot: ParkingSpot;
+  startTime: Date;
+  duration: number; // in hours
+  baseFare: number;
+  taxes: number;
+  totalAmount: number;
 }

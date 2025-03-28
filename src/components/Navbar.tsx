@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Car, Menu, X, User, BarChart3 } from 'lucide-react';
+import { Car, Menu, X, User, BarChart3, MapPin } from 'lucide-react';
 import { useParkingContext } from '../context/ParkingContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Dashboard', path: '/dashboard' },
+    { name: 'Nearby Parking', path: '/nearby' },
     ...(currentUser?.role === 'admin' ? [{ name: 'Admin', path: '/admin' }] : []),
   ];
 
