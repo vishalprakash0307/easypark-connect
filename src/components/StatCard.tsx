@@ -12,7 +12,14 @@ interface StatCardProps {
   className?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
+  useIndianFormat?: boolean;
 }
+
+// Function to format numbers in Indian numbering system (lakhs, crores)
+const formatIndianNumber = (num: number): string => {
+  const result = new Intl.NumberFormat('en-IN').format(num);
+  return result;
+};
 
 const StatCard: React.FC<StatCardProps> = ({
   title,
@@ -22,14 +29,20 @@ const StatCard: React.FC<StatCardProps> = ({
   className,
   trend,
   trendValue,
+  useIndianFormat = true,
 }) => {
+  // Format number values if Indian format is requested
+  const displayValue = typeof value === 'number' && useIndianFormat
+    ? formatIndianNumber(value)
+    : value;
+
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-            <h3 className="text-2xl font-semibold tracking-tight">{value}</h3>
+            <h3 className="text-2xl font-semibold tracking-tight">{displayValue}</h3>
             {description && (
               <p className="text-sm text-muted-foreground mt-1">{description}</p>
             )}

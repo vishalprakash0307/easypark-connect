@@ -1,4 +1,5 @@
 
+
 export interface ParkingSpot {
   id: string;
   status: 'available' | 'occupied' | 'reserved' | 'disabled';
@@ -25,6 +26,9 @@ export interface User {
   name: string;
   email: string;
   role: 'user' | 'admin';
+  preferences?: {
+    useIndianNumberFormat?: boolean;
+  };
 }
 
 export interface Statistics {
@@ -51,3 +55,4 @@ export interface ParkingFilter {
   maxDistance?: number;
   openNow?: boolean;
 }
+
