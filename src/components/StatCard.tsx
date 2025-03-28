@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatIndianNumber } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
 
@@ -14,12 +14,6 @@ interface StatCardProps {
   trendValue?: string;
   useIndianFormat?: boolean;
 }
-
-// Function to format numbers in Indian numbering system (lakhs, crores)
-const formatIndianNumber = (num: number): string => {
-  const result = new Intl.NumberFormat('en-IN').format(num);
-  return result;
-};
 
 const StatCard: React.FC<StatCardProps> = ({
   title,

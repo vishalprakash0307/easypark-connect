@@ -96,6 +96,12 @@ export const ParkingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setTimeout(() => {
         const user = mockUsers.find(u => u.email === email);
         if (user) {
+          // Ensure user has preferences with useIndianNumberFormat set to true by default
+          if (!user.preferences) {
+            user.preferences = { useIndianNumberFormat: true };
+          } else if (user.preferences.useIndianNumberFormat === undefined) {
+            user.preferences.useIndianNumberFormat = true;
+          }
           setCurrentUser(user);
           resolve(true);
         } else {

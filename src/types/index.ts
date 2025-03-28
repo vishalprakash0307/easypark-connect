@@ -1,5 +1,4 @@
 
-
 export interface ParkingSpot {
   id: string;
   status: 'available' | 'occupied' | 'reserved' | 'disabled';
@@ -55,4 +54,3 @@ export interface ParkingFilter {
   maxDistance?: number;
   openNow?: boolean;
 }
-
